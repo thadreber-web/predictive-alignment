@@ -201,9 +201,74 @@ Trained 07d on 5 ICs: (0.5,0), (1.5,0), (2.0,0), (2.0,2.0), (3.0,-1.0). 5 repeat
 4. Multi-IC training reduces but does not fix the self-feeding instability
 5. **Next: Phase 2 — scheduled sampling to bridge the teacher forcing → self-feeding gap**
 
+## 2026-02-28 — Phase 2: Scheduled Sampling & BPTT Baseline
+
+### Experiment 2.1: PA + Scheduled Sampling (FAILED)
+
+N=500, K=2, D=2. 500 epochs, random ICs from θ∈[-2.5,2.5], ω∈[-3.0,3.0]. Linear anneal p_tf from 1.0→0.0 over 400 epochs.
+
+**Training error stayed low** (~0.012–0.023) even as self-feeding increased — the network handled mixed inputs during training.
+
+**But self-feeding checkpoints showed no improvement:**
+| Epoch | p_tf | Self-feeding Error |
+|-------|------|--------------------|
+| 0 | 1.00 | 1.74 |
+| 150 | 0.63 | 3.85 |
+| 250 | 0.38 | 1.57 |
+| 400 | 0.00 | 3.43 |
+| 499 | 0.00 | 3.38 |
+
+Error bounced randomly between 1.6–3.9 with no downward trend across 500 epochs.
+
+**Final generalization (all held-out ICs): mean error = 3.606**
+
+Failure mode: diverges to fixed point (θ≈2.7, ω≈-1.9) within ~100ms. Same catastrophic instability as 07d. Scheduled sampling changed which attractor the network finds, but didn't prevent divergence.
+
+**Root cause:** PA's learning rule has no gradient signal through the self-feeding loop. The M update (`rec_error = Q@z - (M - αG)@r`) is purely local and one-step — it can't learn to correct multi-step autoregressive error accumulation. Self-feeding noise during training just makes M updates noisier, not more robust.
+
+### Experiment 2.0: BPTT Baseline (PARTIAL SUCCESS)
+
+Same architecture (N=500, K=2, D=2, sparse G + trainable M) but trained with truncated BPTT (T=50 steps, Adam, lr=1e-3, grad clip=1.0). Same scheduled sampling + multi-IC setup as exp 2.1.
+
+**Checkpoint stability showed clear downward trend:**
+| Epoch | p_tf | Self-feeding Error |
+|-------|------|--------------------|
+| 0 | 1.00 | 1.35 |
+| 100 | 0.75 | 1.34 |
+| 250 | 0.38 | 1.21 |
+| 400 | 0.00 | 1.24 |
+| 499 | 0.00 | 1.22 |
+
+Converged to ~1.2 by epoch 300 and stayed stable. PA never achieved this.
+
+**Final generalization on held-out ICs:**
+| IC | BPTT | PA (2.1) |
+|----|------|----------|
+| θ=1.0, ω=0.0 | 1.225 | 3.378 |
+| θ=2.5, ω=1.0 | 2.581 | 3.737 |
+| θ=0.3, ω=0.5 | **0.437** | 3.412 |
+| θ=-1.5, ω=2.0 | 1.911 | 3.644 |
+| θ=2.0, ω=-2.5 | 2.381 | 3.859 |
+| **Mean** | **1.707** | **3.606** |
+
+**BPTT is 2x better than PA** on the same task. However, the time series plots reveal the BPTT network damps to near-zero output quickly — it found the trivial stable fixed point (output ≈ 0) rather than learning dynamics. Low error for small-amplitude ICs (extrap_tiny: 0.437) because zero is already close to a damped signal. Neither method learned physics.
+
+### Key conclusions from Phase 2 so far
+
+1. **Scheduled sampling does NOT fix PA's self-feeding instability.** PA's local learning rule cannot propagate error through the autoregressive chain. This is a fundamental limitation, not a hyperparameter issue.
+
+2. **BPTT partially solves it** — gradient flow through the self-feeding loop lets it find stable (if trivial) solutions. This confirms the problem is partly PA-specific.
+
+3. **Neither method learns generalizable dynamics** within 500 epochs. Both find degenerate solutions: PA diverges, BPTT collapses to zero.
+
+4. **The state-to-state prediction framing may need rethinking.** The RNN dynamics (τ=10ms) operate on a much faster timescale than the pendulum (~650ms period). The readout z = w@r maps a 500-dim state through a rank-2 bottleneck — this may not be expressive enough for the self-feeding loop to maintain oscillatory dynamics.
+
 ### Open questions
 1. Lyapunov exponent values from perturbation estimator remain positive after training. Paper reports shift toward negative (Supp Fig 4). May be a measurement method difference — paper's code does not include their Lyapunov implementation.
+2. Would a derivative-predicting architecture (predict dθ/dt, dω/dt instead of θ_next, ω_next) help? This is closer to Neural ODE and might regularize the self-feeding loop.
+3. Would longer BPTT windows (T=200+) or more epochs (2000+) eventually learn non-trivial dynamics?
 
 ### Next steps
-- Phase 2: Scheduled sampling + multi-IC training (Experiment 2.1)
+- Experiment 2.2: Ablations (if any variant shows promise)
+- Experiment 2.5: Neural ODE comparison (to establish upper bound on what's learnable)
 - Run experiment 06 (RSG timing) when time permits (~4-6 hours)
