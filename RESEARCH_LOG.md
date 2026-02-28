@@ -99,11 +99,42 @@ Learning rule, dynamics, and weight initialization confirmed to match our implem
 
 **Results:** Plots saved — eigenspectrum_evolution.png, eigenspectrum_panels.png, singular_values_M.png, effective_rank_M.png. Single run, ~5 min.
 
+### Experiment 05: Lorenz attractor (completed — 2nd run)
+
+**Goal:** Train N=500, K=3 network on 3D Lorenz attractor for 15,000s. Reproduces Fig 4.
+
+**Run 1 — FAILED (incorrect Lorenz time scaling):**
+- `generate_lorenz` advanced 1.0 Lorenz time units per network step (1ms)
+- Lorenz oscillation period ~1ms vs network τ=10ms — network cannot track
+- Error flat at 1.527 for entire 15M steps
+- Root cause: Lorenz time and network time were not decoupled
+
+**Paper comparison audit (2026-02-28):**
+- Paper says "15,000 s trajectory" = 15,000 seconds of Lorenz time
+- Each network step (1ms) should advance Lorenz by 0.001 seconds
+- Added `lorenz_dt` parameter to `generate_lorenz` (default 0.001)
+- Also found RSG pulse formulas were wrong (fixed before exp 06)
+
+**Run 2 — SUCCESS (correct time scaling, lorenz_dt=0.001):**
+- Oscillation period: ~734ms (matches paper Fig 4A)
+- Error decreased throughout training: ~0.04 → **0.013**
+- Runtime: ~51 min on GPU
+- Plots saved: lorenz_components_late.png, lorenz_3d.png, lorenz_2d_*.png, lorenz_tent_map.png, eigenspectrum.png, lorenz_error.png
+
+### Experiment 06: RSG timing (running)
+
+**Goal:** N=1200, K=1, D=2, 200k trials with delays {100, 120, 140, 160} ms. Reproduces Fig 5.
+
+**Bug fix before run:** `generate_rsg_trial` rewritten to match paper eq 17-19:
+- Bipolar pulses: `2·exp(-(t-center)²/Δ²) - 1` (range [-1, +1])
+- T_0 = 60ms, Δ = 15ms (was: unipolar 0-1, T_0=100, width=10)
+
+Status: running on GPU.
+
 ### Open questions
 1. Lyapunov exponent values from perturbation estimator remain positive after training. Paper reports shift toward negative (Supp Fig 4). May be a measurement method difference — paper's code does not include their Lyapunov implementation.
-2. How will parameters transfer to Lorenz (15,000s training) and RSG (200k trials)?
 
 ### Next steps
-- Run experiment 04 (eigenspectrum)
-- Run experiments 05-07
+- Report exp 06 results when complete
+- Run experiment 07 (pendulum — custom, not from paper)
 - Document results

@@ -6,6 +6,7 @@ that can be indexed by timestep.
 
 import numpy as np
 from scipy.integrate import solve_ivp
+import numba
 
 
 def sine_target(t, period=600.0, amplitude=1.5):
@@ -30,17 +31,64 @@ def multi_sine_target(t, frequencies, amplitudes):
     return sum(a * np.sin(2 * np.pi * f * t) for f, a in zip(frequencies, amplitudes))
 
 
-def generate_lorenz(duration_ms, dt=0.1, scale=0.1, sigma=10.0, rho=28.0, beta=8.0/3.0,
-                    x0=None, transient_ms=5000.0):
-    """Pre-generate Lorenz attractor trajectory.
+@numba.njit(fastmath=True)
+def _lorenz_rk4_sub(n_total, sub_steps, h, sigma, rho, beta, x0, y0, z0):
+    """JIT-compiled RK4 integration of Lorenz system with sub-stepping."""
+    traj = np.empty((n_total, 3))
+    x, y, z = x0, y0, z0
+    for i in range(n_total):
+        traj[i, 0] = x
+        traj[i, 1] = y
+        traj[i, 2] = z
+        for _ in range(sub_steps):
+            dx1 = sigma * (y - x)
+            dy1 = x * (rho - z) - y
+            dz1 = x * y - beta * z
+
+            x2 = x + 0.5 * h * dx1
+            y2 = y + 0.5 * h * dy1
+            z2 = z + 0.5 * h * dz1
+            dx2 = sigma * (y2 - x2)
+            dy2 = x2 * (rho - z2) - y2
+            dz2 = x2 * y2 - beta * z2
+
+            x3 = x + 0.5 * h * dx2
+            y3 = y + 0.5 * h * dy2
+            z3 = z + 0.5 * h * dz2
+            dx3 = sigma * (y3 - x3)
+            dy3 = x3 * (rho - z3) - y3
+            dz3 = x3 * y3 - beta * z3
+
+            x4 = x + h * dx3
+            y4 = y + h * dy3
+            z4 = z + h * dz3
+            dx4 = sigma * (y4 - x4)
+            dy4 = x4 * (rho - z4) - y4
+            dz4 = x4 * y4 - beta * z4
+
+            x += (h / 6) * (dx1 + 2*dx2 + 2*dx3 + dx4)
+            y += (h / 6) * (dy1 + 2*dy2 + 2*dy3 + dy4)
+            z += (h / 6) * (dz1 + 2*dz2 + 2*dz3 + dz4)
+    return traj
+
+
+def generate_lorenz(duration_ms, dt=1.0, scale=0.1, sigma=10.0, rho=28.0, beta=8.0/3.0,
+                    x0=None, transient_ms=5000.0, lorenz_dt=0.001):
+    """Pre-generate Lorenz attractor trajectory using numba-JIT RK4.
+
+    Lorenz time and network time are decoupled: each output point
+    (spaced dt ms apart in network time) advances the Lorenz system
+    by lorenz_dt seconds. Paper uses lorenz_dt=0.001 so 1ms network
+    time = 0.001 Lorenz seconds, giving ~750-1000ms oscillation period.
 
     Args:
-        duration_ms: Total duration in ms.
-        dt: Timestep in ms.
+        duration_ms: Total duration in ms (network time).
+        dt: Network timestep in ms (controls number of output points).
         scale: Scale factor for output (paper uses 1/10).
         sigma, rho, beta: Lorenz parameters.
         x0: Initial condition [x, y, z]. Defaults to [1, 1, 1].
-        transient_ms: Time to discard as transient (ms).
+        transient_ms: Transient to discard in ms (network time).
+        lorenz_dt: Lorenz time advance per output point (seconds).
 
     Returns:
         trajectory: Array of shape (n_steps, 3) scaled by `scale`.
@@ -49,21 +97,16 @@ def generate_lorenz(duration_ms, dt=0.1, scale=0.1, sigma=10.0, rho=28.0, beta=8
         x0 = [1.0, 1.0, 1.0]
 
     total_ms = duration_ms + transient_ms
-    t_span = (0, total_ms)
-    t_eval = np.arange(0, total_ms, dt)
+    n_total = int(total_ms / dt)
+    # RK4 step size for Lorenz integration (h=0.001 is stable for standard Lorenz)
+    h = lorenz_dt
+    sub_steps = 1
 
-    def lorenz(t, state):
-        x, y, z = state
-        return [sigma * (y - x), x * (rho - z) - y, x * y - beta * z]
-
-    sol = solve_ivp(lorenz, t_span, x0, t_eval=t_eval, method="RK45",
-                    rtol=1e-8, atol=1e-8)
+    traj = _lorenz_rk4_sub(n_total, sub_steps, h, sigma, rho, beta, x0[0], x0[1], x0[2])
 
     # Discard transient
     skip = int(transient_ms / dt)
-    traj = sol.y[:, skip:].T  # shape (n_steps, 3)
-
-    return traj * scale
+    return traj[skip:] * scale
 
 
 def generate_pendulum(duration_ms, dt=0.1, b=0.5, g=9.81, L=1.0,
@@ -98,43 +141,35 @@ def generate_pendulum(duration_ms, dt=0.1, b=0.5, g=9.81, L=1.0,
     return sol.y.T  # shape (n_steps, 2)
 
 
-def generate_rsg_trial(t_delay, dt=0.1, pulse_width=10.0, pulse_amplitude=1.0):
-    """Generate a single Ready-Set-Go trial.
+def generate_rsg_trial(t_delay, dt=1.0, T_0=60.0, delta=15.0):
+    """Generate a single Ready-Set-Go trial (paper eq 17-19).
 
-    Two input pulses separated by t_delay ms. Target is an output pulse
-    at t_delay ms after the second input pulse.
+    Bipolar Gaussian pulses: 2*exp(-(t-center)^2/delta^2) - 1
+    Baseline is -1, peak is +1.
 
     Args:
         t_delay: Delay between pulses in ms.
         dt: Timestep in ms.
-        pulse_width: Width of Gaussian pulses in ms (std dev).
-        pulse_amplitude: Amplitude of pulses.
+        T_0: Uniform time offset for first pulse (paper: 60 ms).
+        delta: Gaussian width parameter in ms (paper: 15 ms).
 
     Returns:
         input_signals: Array of shape (n_steps, 2) — two input channels.
         target_signal: Array of shape (n_steps,) — output target.
         trial_duration_ms: Total trial duration.
     """
-    # Trial layout: ready at t=100ms, set at t=100+t_delay, go target at t=100+2*t_delay
-    # Add 200ms buffer at end
-    ready_time = 100.0
-    set_time = ready_time + t_delay
-    go_time = set_time + t_delay
+    # Paper eq 17-19: s1 at T_0, s2 at T_0+T_delay, output at T_0+2*T_delay
+    go_time = T_0 + 2 * t_delay
     trial_duration = go_time + 200.0
 
     n_steps = int(trial_duration / dt)
     t = np.arange(n_steps) * dt
 
-    # Gaussian pulse helper
-    def gaussian_pulse(t, center, width, amp):
-        return amp * np.exp(-0.5 * ((t - center) / width) ** 2)
-
-    # Input channel 1: ready pulse
-    input1 = gaussian_pulse(t, ready_time, pulse_width, pulse_amplitude)
-    # Input channel 2: set pulse
-    input2 = gaussian_pulse(t, set_time, pulse_width, pulse_amplitude)
+    # Paper: s(t) = 2*exp(-(t - center)^2 / delta^2) - 1
+    input1 = 2.0 * np.exp(-((t - T_0) ** 2) / (delta ** 2)) - 1.0
+    input2 = 2.0 * np.exp(-((t - T_0 - t_delay) ** 2) / (delta ** 2)) - 1.0
+    target_signal = 2.0 * np.exp(-((t - T_0 - 2 * t_delay) ** 2) / (delta ** 2)) - 1.0
 
     input_signals = np.stack([input1, input2], axis=1)  # (n_steps, 2)
-    target_signal = gaussian_pulse(t, go_time, pulse_width, pulse_amplitude)
 
     return input_signals, target_signal, trial_duration

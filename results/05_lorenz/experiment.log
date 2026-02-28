@@ -1,4 +1,22 @@
-03:32:55 | Config: N=500, K=3, g=1.2, dt=1.0, eta_w=0.001, eta_m=0.001
-03:32:55 | Train: 15000s (15000000 steps)
-03:32:55 | Log: tail -f /raid/predictive_alignment/results/05_lorenz/experiment.log
-03:32:55 | Generating Lorenz trajectory...
+17:17:18 | Config: N=500, K=3, g=1.2, dt=1.0, eta_w=0.001, eta_m=0.001
+17:17:18 | Train: 15000s (15000000 steps)
+17:17:18 | Log: tail -f /raid/predictive_alignment/results/05_lorenz/experiment.log
+17:17:18 | Generating Lorenz trajectory...
+17:17:19 | Lorenz trajectory shape: (15005001, 3)
+17:17:19 | Training for 15000000 steps (15000s simulated)...
+17:20:45 |   step=1000000/15000000 (1000s): mean_err=0.022733
+17:24:10 |   step=2000000/15000000 (2000s): mean_err=0.018728
+17:27:36 |   step=3000000/15000000 (3000s): mean_err=0.016636
+17:31:01 |   step=4000000/15000000 (4000s): mean_err=0.015380
+17:34:26 |   step=5000000/15000000 (5000s): mean_err=0.014653
+17:37:51 |   step=6000000/15000000 (6000s): mean_err=0.011542
+17:41:16 |   step=7000000/15000000 (7000s): mean_err=0.013261
+17:44:42 |   step=8000000/15000000 (8000s): mean_err=0.015266
+17:48:07 |   step=9000000/15000000 (9000s): mean_err=0.012966
+17:51:32 |   step=10000000/15000000 (10000s): mean_err=0.010553
+17:54:57 |   step=11000000/15000000 (11000s): mean_err=0.011718
+17:58:23 |   step=12000000/15000000 (12000s): mean_err=0.012265
+18:01:48 |   step=13000000/15000000 (13000s): mean_err=0.013282
+18:05:13 |   step=14000000/15000000 (14000s): mean_err=0.010990
+18:08:43 | Training complete. Final mean error: 0.013076
+18:08:43 | Testing for 5000 steps (plasticity off)...
