@@ -121,7 +121,7 @@ Learning rule, dynamics, and weight initialization confirmed to match our implem
 - Runtime: ~51 min on GPU
 - Plots saved: lorenz_components_late.png, lorenz_3d.png, lorenz_2d_*.png, lorenz_tent_map.png, eigenspectrum.png, lorenz_error.png
 
-### Experiment 06: RSG timing (running)
+### Experiment 06: RSG timing (deferred)
 
 **Goal:** N=1200, K=1, D=2, 200k trials with delays {100, 120, 140, 160} ms. Reproduces Fig 5.
 
@@ -129,12 +129,22 @@ Learning rule, dynamics, and weight initialization confirmed to match our implem
 - Bipolar pulses: `2·exp(-(t-center)²/Δ²) - 1` (range [-1, +1])
 - T_0 = 60ms, Δ = 15ms (was: unipolar 0-1, T_0=100, width=10)
 
-Status: running on GPU.
+Status: deferred — estimated 4-6 hours runtime. Code is ready, will run when time permits.
+
+### Experiment 07: Damped pendulum (completed)
+
+**Goal:** Train N=500, K=2 network on damped pendulum (theta, omega) for 50s (10 repeats of 5s trajectory). Custom experiment — not from the paper.
+
+**Config:** b=0.5 (damping), g=9.81, L=1.0, theta0=2.0, omega0=0.0
+
+**Results:**
+- Final mean error: **0.028**
+- Runtime: ~10 seconds
+- Plots saved: pendulum_training.png, pendulum_test.png, phase_portrait_train.png, phase_portrait_test.png, pendulum_energy.png, pendulum_error.png
 
 ### Open questions
 1. Lyapunov exponent values from perturbation estimator remain positive after training. Paper reports shift toward negative (Supp Fig 4). May be a measurement method difference — paper's code does not include their Lyapunov implementation.
 
 ### Next steps
-- Report exp 06 results when complete
-- Run experiment 07 (pendulum — custom, not from paper)
-- Document results
+- Run experiment 06 (RSG timing) when time permits (~4-6 hours)
+- Phase 1 experiments complete (except exp 06)
