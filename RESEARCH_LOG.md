@@ -263,12 +263,79 @@ Converged to ~1.2 by epoch 300 and stayed stable. PA never achieved this.
 
 4. **The state-to-state prediction framing may need rethinking.** The RNN dynamics (τ=10ms) operate on a much faster timescale than the pendulum (~650ms period). The readout z = w@r maps a 500-dim state through a rank-2 bottleneck — this may not be expressive enough for the self-feeding loop to maintain oscillatory dynamics.
 
+### Experiment 2.5: Neural ODE Baseline (SUCCESS)
+
+Architecture: small MLP (2→64→64→64→2, **8,642 params** vs RNN's 252k) learns dstate/dt = f(state). Integrated with differentiable RK4. Trained on 50-step segments with backprop through the solver, cosine LR schedule, 500 epochs.
+
+**Checkpoint error (θ=1.0, ω=0.0) during training:**
+| Epoch | Error | Notes |
+|-------|-------|-------|
+| 0 | 1.007 | Random init |
+| 50 | 0.065 | Already below 0.5 threshold |
+| 250 | 0.035 | Still improving |
+| 350 | 0.023 | |
+| 400 | 0.013 | |
+| 499 | 0.014 | Converged |
+
+Training time: 8,286s (~2.3 hours). Loss reached ~0 by epoch 150.
+
+**Final generalization on held-out ICs:**
+
+| IC | Neural ODE | BPTT | PA (2.1) |
+|----|-----------|------|----------|
+| θ=1.0, ω=0.0 | **0.014** | 1.225 | 3.378 |
+| θ=2.5, ω=1.0 | **0.279** | 2.581 | 3.737 |
+| θ=0.3, ω=0.5 | **0.006** | 0.437 | 3.412 |
+| θ=-1.5, ω=2.0 | **0.047** | 1.911 | 3.644 |
+| θ=2.0, ω=-2.5 | **0.080** | 2.381 | 3.859 |
+| **Mean** | **0.085** | **1.707** | **3.606** |
+
+Neural ODE is **20x better than BPTT** and **42x better than PA** on mean generalization error. All 5 held-out ICs are below the 0.5 success threshold. Time series plots show near-perfect tracking of ground truth for 5 full seconds on novel ICs.
+
+The interp_hard IC (θ=2.5, ω=1.0) has the largest error (0.279) — this is near the edge of the training range and involves large-angle nonlinearity (sin(θ) deviates significantly from θ). Still tracks correctly but with slight phase drift by 5s.
+
+**Vector field quality:** The learned derivatives match the true pendulum ODE closely:
+```
+Point (θ, ω)     True (dθ/dt, dω/dt)    Learned
+(+1.0, +0.0)     (+0.000, -8.255)        (+0.012, -8.268)
+(+0.0, +2.0)     (+2.000, -1.000)        (+2.000, -1.017)
+(-1.0, -1.0)     (-1.000, +8.755)        (-0.982, +8.721)
+(+2.5, +1.0)     (+1.000, -6.371)        (+0.968, -6.561)
+```
+The MLP has effectively learned dθ/dt ≈ ω and dω/dt ≈ -bω - (g/L)sin(θ) from trajectory data alone.
+
+**Why Neural ODE works where RNNs fail:**
+1. **Correct inductive bias:** Learns the derivative f(state) directly, not state→state mapping. The ODE solver handles time integration, so the network only needs to approximate the local vector field.
+2. **No self-feeding instability:** There is no autoregressive loop — the ODE solver calls the network at each integration step with the solver's own state, not the network's previous output.
+3. **Tiny model, huge gain:** 8,642 params vs 252,000 — the right architecture matters far more than scale.
+4. **Generalizes by construction:** Learning dθ/dt = f(θ, ω) is a universal function approximation of the dynamics. Any IC just starts the solver at a different point in the same learned vector field.
+
+**What this means for predictive alignment:**
+- PA is well-suited for autonomous trajectory generation (memorizing attractors) but fundamentally cannot learn generalizable state-to-state dynamics via input-driven self-feeding
+- The bottleneck is not capacity (N=500 has plenty) but the learning rule: PA's local Hebbian-like updates have no mechanism to optimize multi-step rollout stability
+- A derivative-predicting variant of PA (if one could be designed) might bridge this gap, but it would require fundamentally different error signals than the current Q@z feedback
+
+### Phase 2 overall conclusions
+
+| Method | Params | Mean Gen. Error | Failure Mode |
+|--------|--------|----------------|--------------|
+| PA teacher forcing (07d) | 252k | 5.5 | Diverges to fixed point |
+| PA multi-IC (07e) | 252k | 2.3 | Spurious limit cycle |
+| PA + sched. sampling (2.1) | 252k | 3.6 | Diverges to fixed point |
+| BPTT + sched. sampling (2.0) | 252k | 1.7 | Collapses to zero |
+| **Neural ODE (2.5)** | **8.6k** | **0.085** | **None — tracks ground truth** |
+
+The gap is 20x between Neural ODE and the best RNN method (BPTT), and 42x vs the best PA method. This is not a tuning issue — it's an architectural mismatch. The Neural ODE has the right inductive bias: learn the derivative, let the solver integrate. RNNs with readout bottlenecks and self-feeding loops are the wrong tool for learning generalizable dynamics from state observations.
+
 ### Open questions
-1. Lyapunov exponent values from perturbation estimator remain positive after training. Paper reports shift toward negative (Supp Fig 4). May be a measurement method difference — paper's code does not include their Lyapunov implementation.
-2. Would a derivative-predicting architecture (predict dθ/dt, dω/dt instead of θ_next, ω_next) help? This is closer to Neural ODE and might regularize the self-feeding loop.
-3. Would longer BPTT windows (T=200+) or more epochs (2000+) eventually learn non-trivial dynamics?
+1. Lyapunov exponent values from perturbation estimator remain positive after training. Paper reports shift toward negative (Supp Fig 4). May be a measurement method difference.
+2. Could a PA-trained RNN learn the *derivative* instead of the next state? Would require modifying the target signal and readout interpretation.
+3. Is the Neural ODE result robust to noise in training data? Real physical measurements have sensor noise.
+4. Can Neural ODE scale to harder systems (Lotka-Volterra, double pendulum)?
+5. The interp_hard IC (θ=2.5, ω=1.0) had 0.279 error — near the training range boundary. How does error scale with distance from training distribution?
 
 ### Next steps
-- Experiment 2.2: Ablations (if any variant shows promise)
-- Experiment 2.5: Neural ODE comparison (to establish upper bound on what's learnable)
+- Experiment 2.3: Lotka-Volterra with Neural ODE (test on coupled nonlinear system)
+- Experiment 2.4: Double pendulum (chaotic 4D system — hardest test)
+- Consider hybrid: PA for autonomous attractor generation + Neural ODE head for physics prediction
 - Run experiment 06 (RSG timing) when time permits (~4-6 hours)
