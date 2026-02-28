@@ -1,0 +1,24 @@
+00:28:34 | Config: N=500, K=1, g=1.2, dt=1.0, eta_w=0.001, eta_m=0.001
+00:28:34 | Alpha values: [0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0], seeds per alpha: 20
+00:28:34 | Train: 300s (300000 steps per run)
+00:28:34 | Total runs: 140
+00:28:34 | Log: tail -f /raid/predictive_alignment/results/02_break_alpha/experiment.log
+00:28:34 | 
+=== alpha = 0.0 ===
+00:29:37 |   alpha=0.0 seed=0: error=0.009281, lyap=0.3177, align=53.2293
+00:33:45 |   alpha=0.0 seed=4: error=0.007149, lyap=0.3111, align=-4.2729
+00:38:56 |   alpha=0.0 seed=9: error=0.005497, lyap=0.3286, align=51.0309
+00:44:06 |   alpha=0.0 seed=14: error=0.011322, lyap=0.3565, align=19.1126
+00:49:15 |   alpha=0.0 seed=19: error=0.009615, lyap=0.3259, align=105.4512
+00:49:15 |   alpha=0.0 SUMMARY: mean_error=0.009525, mean_lyap=0.3182
+00:49:15 | 
+=== alpha = 0.25 ===
+00:50:17 |   alpha=0.25 seed=0: error=0.006947, lyap=0.3276, align=169.4946
+00:54:25 |   alpha=0.25 seed=4: error=0.010948, lyap=0.3244, align=114.0779
+00:59:34 |   alpha=0.25 seed=9: error=0.004273, lyap=0.3219, align=172.3604
+01:04:43 |   alpha=0.25 seed=14: error=0.005326, lyap=0.3618, align=134.7214
+01:09:53 |   alpha=0.25 seed=19: error=0.003847, lyap=0.3074, align=221.0010
+01:09:53 |   alpha=0.25 SUMMARY: mean_error=0.006846, mean_lyap=0.3392
+01:09:53 | 
+=== alpha = 0.5 ===
+01:10:55 |   alpha=0.5 seed=0: error=0.002875, lyap=0.3456, align=287.5110

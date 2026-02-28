@@ -1,0 +1,24 @@
+22:21:38 | Device: cuda
+22:21:38 | Config: N=500, K=1, g=1.2, tau=10.0, dt=1.0
+22:21:38 |   eta_w=0.001, eta_m=0.0001, alpha=1.0
+22:21:38 |   train=60s (60000 steps), test=10s
+22:21:38 | Log file: /raid/predictive_alignment/results/01_sine_wave_v4/experiment.log
+22:21:38 |   Monitor with: tail -f /raid/predictive_alignment/results/01_sine_wave_v4/experiment.log
+22:21:39 | Lyapunov exponent before training: 1.0213
+22:21:39 | Training for 60000 steps (60s simulated)...
+22:21:41 |   step   10000/60000 ( 16.7%) | mean_err=0.041413 | max|x|=9.54 | t=10000.0ms
+22:21:44 |   step   20000/60000 ( 33.3%) | mean_err=0.034695 | max|x|=9.74 | t=20000.0ms
+22:21:46 |   step   30000/60000 ( 50.0%) | mean_err=0.025816 | max|x|=7.67 | t=30000.0ms
+22:21:48 |   step   40000/60000 ( 66.7%) | mean_err=0.020896 | max|x|=8.80 | t=40000.0ms
+22:21:50 |   step   50000/60000 ( 83.3%) | mean_err=0.015807 | max|x|=9.94 | t=50000.0ms
+22:21:52 | Testing for 10000 steps (10s, plasticity off)...
+22:21:53 | Lyapunov exponent after training: 3.2704
+22:21:55 | Saved: /raid/predictive_alignment/results/01_sine_wave_v4/test_autonomous.png
+22:21:56 | === Results ===
+22:21:56 | Lyapunov before: 1.0213
+22:21:56 | Lyapunov after:  3.2704
+22:21:56 | Early training error (mean): 0.044314
+22:21:56 | Late training error (mean):  0.012659
+22:21:56 | Test RMSE (plasticity off):  0.780656
+22:21:56 | Plots saved to /raid/predictive_alignment/results/01_sine_wave_v4/
+22:21:56 | Saved: /raid/predictive_alignment/results/01_sine_wave_v4/results.npz
