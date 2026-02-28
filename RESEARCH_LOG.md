@@ -142,9 +142,68 @@ Status: deferred — estimated 4-6 hours runtime. Code is ready, will run when t
 - Runtime: ~10 seconds
 - Plots saved: pendulum_training.png, pendulum_test.png, phase_portrait_train.png, phase_portrait_test.png, pendulum_energy.png, pendulum_error.png
 
+## 2026-02-28 — Pendulum Ablations & Generalization Tests
+
+### Experiment 07 ablations (07a, 07b, 07d)
+
+Three ablations to understand what the pendulum network learned:
+
+| Variant | Description | Final Error |
+|---------|-------------|-------------|
+| 07 (original) | N=500, 10 repeats of 5s | 0.028 |
+| 07a | 50s continuous (no repeats) | **0.013** |
+| 07b | N=100 (small network) | 0.176 |
+| 07d | Input-driven, teacher forcing, self-feeding test | 0.020 |
+
+**Findings:**
+- 07a: Single long trajectory > repeated short trajectory for training
+- 07b: N=100 lacks capacity, ~6x worse than N=500
+- 07d: Teacher forcing trains well (0.020) but self-feeding at test diverges
+
+### Generalization test: 07d vs 07a on novel ICs
+
+Trained on (θ=2.0, ω=0.0), tested on novel ICs:
+
+| IC | 07a error | 07d error |
+|----|-----------|-----------|
+| θ=1.0, ω=0.0 | 1.225 | 5.504 |
+| θ=2.5, ω=1.0 | 2.598 | 5.772 |
+
+**07d catastrophically fails:** Diverges to spurious fixed point (~θ≈3.1, ω≈4.2) within ~100ms. Classic autoregressive instability — network never saw its own errors during teacher-forced training.
+
+**07a produces near-zero output:** Memorized the late (damped) portion of training trajectory. Lower error only because hovering near zero is closer to a damped pendulum than diverging.
+
+Neither architecture generalizes. Both memorize trajectories, not physics.
+
+### Experiment 07e: Multi-IC training for 07d
+
+Trained 07d on 5 ICs: (0.5,0), (1.5,0), (2.0,0), (2.0,2.0), (3.0,-1.0). 5 repeats each, interleaved, network reset between trajectories.
+
+**Training error:** 0.015 (good)
+
+**Test on held-out ICs (self-feeding):**
+| IC | Error |
+|----|-------|
+| θ=1.0, ω=0.0 (interp) | 2.253 |
+| θ=2.5, ω=1.0 (interp) | 2.987 |
+| θ=0.3, ω=0.5 (extrap) | 2.176 |
+| θ=2.0, ω=0.0 (train sanity) | 2.748 |
+
+**Improvement over single-IC 07d** (5.5 → 2.3) but still bad. No longer diverges to fixed point — instead enters fast spurious limit cycle (~200ms period vs true ~650ms). The network oscillates at its own natural timescale, not the pendulum's. Even the training IC sanity check fails (2.748), confirming self-feeding loop instability is the core problem, not IC coverage.
+
+**Diagnosis:** Exposure bias. Teacher forcing trains on smooth ground-truth inputs. Self-feeding produces noisy inputs the network never learned to handle. Standard fix: scheduled sampling (gradually replace teacher forcing with self-feeding during training).
+
+### Phase 1 conclusions
+
+1. Predictive alignment successfully learns autonomous trajectory generation (sine, Lorenz, pendulum)
+2. It does NOT generalize to novel initial conditions — it memorizes trajectories
+3. Input-driven variant (07d) fails at test time due to train/test mismatch (exposure bias)
+4. Multi-IC training reduces but does not fix the self-feeding instability
+5. **Next: Phase 2 — scheduled sampling to bridge the teacher forcing → self-feeding gap**
+
 ### Open questions
 1. Lyapunov exponent values from perturbation estimator remain positive after training. Paper reports shift toward negative (Supp Fig 4). May be a measurement method difference — paper's code does not include their Lyapunov implementation.
 
 ### Next steps
+- Phase 2: Scheduled sampling + multi-IC training (Experiment 2.1)
 - Run experiment 06 (RSG timing) when time permits (~4-6 hours)
-- Phase 1 experiments complete (except exp 06)
