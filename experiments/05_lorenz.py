@@ -8,6 +8,7 @@ sys.path.insert(0, "/raid/predictive_alignment")
 
 import torch
 import numpy as np
+import logging
 from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
@@ -43,18 +44,36 @@ RESULTS_DIR = "/raid/predictive_alignment/results/05_lorenz"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+LOG_FILE = f"{RESULTS_DIR}/experiment.log"
+
+
 def main():
     os.makedirs(RESULTS_DIR, exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=[
+            logging.FileHandler(LOG_FILE, mode="w"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    log = logging.getLogger("exp05")
+    log.info(f"Config: N={N}, K={K}, g={G}, dt={DT}, eta_w={ETA_W}, eta_m={ETA_M}")
+    log.info(f"Train: {TRAIN_MS/1000:.0f}s ({TRAIN_STEPS} steps)")
+    log.info(f"Log: tail -f {LOG_FILE}")
+
     set_seed(SEED)
 
-    print("Generating Lorenz trajectory...")
+    log.info("Generating Lorenz trajectory...")
     # Generate trajectory: need TRAIN_STEPS + TEST_STEPS points
     total_steps = TRAIN_STEPS + TEST_STEPS
     lorenz_traj = generate_lorenz(
         duration_ms=(total_steps + 1) * DT,
         dt=DT, scale=0.1,
     )
-    print(f"Lorenz trajectory shape: {lorenz_traj.shape}")
+    log.info(f"Lorenz trajectory shape: {lorenz_traj.shape}")
 
     # Truncate to needed length
     if len(lorenz_traj) > total_steps:
@@ -74,8 +93,7 @@ def main():
     z_late = []
     f_late = []
 
-    print(f"Training for {TRAIN_STEPS} steps ({TRAIN_MS/1000:.0f}s simulated)...")
-    print("(This will take a while — 15,000 seconds of simulated time)")
+    log.info(f"Training for {TRAIN_STEPS} steps ({TRAIN_MS/1000:.0f}s simulated)...")
 
     for step in tqdm(range(TRAIN_STEPS), desc="Training", mininterval=5.0):
         target_np = lorenz_traj[step]
@@ -85,6 +103,10 @@ def main():
         if step % RECORD_EVERY == 0:
             err = torch.norm(target - z).item()
             errors.append(err)
+
+        if step > 0 and step % 1_000_000 == 0:
+            mean_err = np.mean(errors[-1000:])
+            log.info(f"  step={step}/{TRAIN_STEPS} ({step*DT/1000:.0f}s): mean_err={mean_err:.6f}")
 
         # Record late training output (last 1% of training)
         if step >= int(0.99 * TRAIN_STEPS):
@@ -98,7 +120,8 @@ def main():
     eigs_after = compute_eigenspectrum(net.get_J())
 
     # ── Testing (plasticity off) ────────────────────────────────────
-    print(f"Testing for {TEST_STEPS} steps (plasticity off)...")
+    log.info(f"Training complete. Final mean error: {np.mean(errors[-100:]):.6f}")
+    log.info(f"Testing for {TEST_STEPS} steps (plasticity off)...")
     test_z = []
     test_f = []
 

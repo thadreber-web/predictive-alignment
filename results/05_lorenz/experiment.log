@@ -1,0 +1,4 @@
+03:32:55 | Config: N=500, K=3, g=1.2, dt=1.0, eta_w=0.001, eta_m=0.001
+03:32:55 | Train: 15000s (15000000 steps)
+03:32:55 | Log: tail -f /raid/predictive_alignment/results/05_lorenz/experiment.log
+03:32:55 | Generating Lorenz trajectory...

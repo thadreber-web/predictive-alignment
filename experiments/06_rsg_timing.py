@@ -9,6 +9,7 @@ sys.path.insert(0, "/raid/predictive_alignment")
 
 import torch
 import numpy as np
+import logging
 from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
@@ -66,8 +67,26 @@ def run_trial(net, delay, learn=True):
     return np.array(outputs), target_signal
 
 
+LOG_FILE = f"{RESULTS_DIR}/experiment.log"
+
+
 def main():
     os.makedirs(RESULTS_DIR, exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=[
+            logging.FileHandler(LOG_FILE, mode="w"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    log = logging.getLogger("exp06")
+    log.info(f"Config: N={N}, K={K}, D={D}, g={G}, dt={DT}, eta_w={ETA_W}, eta_m={ETA_M}")
+    log.info(f"Delays: {TRAIN_DELAYS}, trials: {N_TRIALS}")
+    log.info(f"Log: tail -f {LOG_FILE}")
+
     set_seed(SEED)
 
     net = PredictiveAlignmentRNN(
@@ -77,7 +96,7 @@ def main():
     )
 
     # ── Training ────────────────────────────────────────────────────
-    print(f"Training for {N_TRIALS} trials...")
+    log.info(f"Training for {N_TRIALS} trials...")
     trial_errors = []
 
     for trial in tqdm(range(N_TRIALS), desc="Training", mininterval=5.0):
@@ -88,10 +107,16 @@ def main():
         # Reset state between trials (partial reset — small perturbation)
         net.x = net.x * 0.1
 
+        if trial > 0 and trial % 10_000 == 0:
+            mean_err = np.mean(trial_errors[-1000:])
+            log.info(f"  trial={trial}/{N_TRIALS}: mean_mse={mean_err:.6f}")
+
     trial_errors = np.array(trial_errors)
 
+    log.info(f"Training complete. Final mean MSE: {np.mean(trial_errors[-1000:]):.6f}")
+
     # ── Test: trained delays ────────────────────────────────────────
-    print("Testing trained delays...")
+    log.info("Testing trained delays...")
     trained_outputs = {}
     for delay in TRAIN_DELAYS:
         outputs = []

@@ -8,6 +8,7 @@ sys.path.insert(0, "/raid/predictive_alignment")
 
 import torch
 import numpy as np
+import logging
 from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
@@ -52,11 +53,29 @@ RESULTS_DIR = "/raid/predictive_alignment/results/07_pendulum"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+LOG_FILE = f"{RESULTS_DIR}/experiment.log"
+
+
 def main():
     os.makedirs(RESULTS_DIR, exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=[
+            logging.FileHandler(LOG_FILE, mode="w"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    log = logging.getLogger("exp07")
+    log.info(f"Config: N={N}, K={K}, g={G}, dt={DT}, eta_w={ETA_W}, eta_m={ETA_M}")
+    log.info(f"Train: {TRAIN_STEPS} steps ({N_REPEATS} repeats of {TRAJ_MS/1000:.0f}s)")
+    log.info(f"Log: tail -f {LOG_FILE}")
+
     set_seed(SEED)
 
-    print("Generating pendulum trajectory...")
+    log.info("Generating pendulum trajectory...")
     pend_traj = generate_pendulum(
         duration_ms=TRAJ_MS, dt=DT,
         b=B, g=GRAV, L=L, theta0=THETA0, omega0=OMEGA0,
@@ -70,7 +89,7 @@ def main():
     )
 
     # ── Training ────────────────────────────────────────────────────
-    print(f"Training for {TRAIN_STEPS} steps ({N_REPEATS} repeats of {TRAJ_MS/1000:.0f}s)...")
+    log.info(f"Training for {TRAIN_STEPS} steps...")
     errors = []
     z_history = []
     f_history = []
@@ -96,8 +115,10 @@ def main():
     f_history = np.array(f_history)
     errors = np.array(errors)
 
+    log.info(f"Training complete. Final mean error: {np.mean(errors[-100:]):.6f}")
+
     # ── Test (plasticity off, same initial condition) ───────────────
-    print(f"Testing for {TEST_STEPS} steps (plasticity off)...")
+    log.info(f"Testing for {TEST_STEPS} steps (plasticity off)...")
     test_z = []
     test_f = []
 

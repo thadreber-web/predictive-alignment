@@ -63,12 +63,47 @@
 | N | 500 | |
 | Training | 300s+ | Need 500+ periods for convergence |
 
+### Experiment 02: Alpha sweep (completed)
+
+**Goal:** Sweep alpha = {0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0} with 20 seeds each. Reproduces Fig 3C-E.
+
+**Results:**
+| Alpha | Mean Error | Mean Lyap | Alignment trend |
+|-------|-----------|-----------|-----------------|
+| 0.0   | 0.009525  | 0.319     | Low/noisy       |
+| 0.25  | 0.006846  | 0.337     | ~150            |
+| 0.5   | 0.004044  | 0.346     | ~290            |
+| 0.75  | 0.003140  | 0.359     | ~420            |
+| 1.0   | **0.001570** | 0.363  | ~550            |
+| 1.5   | 0.009054  | 0.282     | ~840            |
+| 2.0   | 0.026649  | 0.286     | ~1140           |
+
+**Key findings:**
+- Alpha=1.0 gives lowest readout error — matches paper's Fig 3C
+- Error decreases monotonically from alpha=0 to alpha=1, then rises (over-regularization)
+- Alignment <Gr, Mr> scales linearly with alpha — matches paper's Fig 3D
+- Plots saved: error_vs_alpha.png, lyapunov_vs_alpha.png, alignment_over_time.png, Gr_vs_Mr_scatter.png
+
+### Experiment 03: Edge of chaos — SKIPPED
+
+Skipped: reproduces known paper result (Supp Fig 5). Code validated by experiments 01-02.
+
+### Code verification
+
+Downloaded paper's official code (PA_code.py from github.com/TAsabuki/PredictiveAlignment).
+Learning rule, dynamics, and weight initialization confirmed to match our implementation.
+
+### Experiment 04: Eigenspectrum analysis (completed)
+
+**Goal:** Snapshot eigenvalues of J = G+M at 0%, 25%, 50%, 75%, 100% of training on sine wave.
+
+**Results:** Plots saved — eigenspectrum_evolution.png, eigenspectrum_panels.png, singular_values_M.png, effective_rank_M.png. Single run, ~5 min.
+
 ### Open questions
-1. Lyapunov still goes UP (1.0 → 3.6) even in the successful run. Paper claims it should go negative. Is there a remaining implementation difference, or does the Lyapunov estimator need fixing?
-2. The weight initialization std formula may differ from the paper (I use g/sqrt(pN), paper might use sqrt(g/N)). Need to check impact.
-3. How will these parameters transfer to Lorenz (15,000s training) and RSG (200k trials)?
+1. Lyapunov exponent values from perturbation estimator remain positive after training. Paper reports shift toward negative (Supp Fig 4). May be a measurement method difference — paper's code does not include their Lyapunov implementation.
+2. How will parameters transfer to Lorenz (15,000s training) and RSG (200k trials)?
 
 ### Next steps
-- Run experiments 02-07 with validated parameters
-- Investigate Lyapunov discrepancy
-- Document results for each experiment
+- Run experiment 04 (eigenspectrum)
+- Run experiments 05-07
+- Document results

@@ -9,6 +9,7 @@ sys.path.insert(0, "/raid/predictive_alignment")
 
 import torch
 import numpy as np
+import logging
 from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
@@ -42,8 +43,26 @@ RESULTS_DIR = "/raid/predictive_alignment/results/04_eigenspectrum"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+LOG_FILE = f"{RESULTS_DIR}/experiment.log"
+
+
 def main():
     os.makedirs(RESULTS_DIR, exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=[
+            logging.FileHandler(LOG_FILE, mode="w"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    log = logging.getLogger("exp04")
+    log.info(f"Config: N={N}, K={K}, g={G}, dt={DT}, eta_w={ETA_W}, eta_m={ETA_M}")
+    log.info(f"Train: {TRAIN_STEPS} steps, snapshots at {SNAPSHOT_FRACTIONS}")
+    log.info(f"Log: tail -f {LOG_FILE}")
+
     set_seed(SEED)
 
     net = PredictiveAlignmentRNN(
@@ -62,7 +81,7 @@ def main():
     sv_snapshots.append(compute_singular_values(net.M))
     labels.append("0% (before)")
 
-    print(f"Training for {TRAIN_STEPS} steps...")
+    log.info(f"Training for {TRAIN_STEPS} steps...")
     next_snap_idx = 1  # already took 0%
 
     for step in tqdm(range(TRAIN_STEPS), desc="Training", mininterval=2.0):
@@ -76,7 +95,7 @@ def main():
             eig_snapshots.append(compute_eigenspectrum(net.get_J()))
             sv_snapshots.append(compute_singular_values(net.M))
             labels.append(f"{frac:.0%}")
-            print(f"  Snapshot at {frac:.0%}")
+            log.info(f"  Snapshot at {frac:.0%}")
             next_snap_idx += 1
 
     # ── Plot 1: Eigenspectrum evolution ─────────────────────────────
