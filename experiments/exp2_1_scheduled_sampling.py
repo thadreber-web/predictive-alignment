@@ -8,8 +8,11 @@ Training: 500 epochs, each epoch = 1 random IC trajectory (5s)
 Schedule: p(epoch) = max(0, 1 - epoch/N_ANNEAL) where p=prob of teacher forcing
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -18,7 +21,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 
 from src.network import PredictiveAlignmentRNN
@@ -68,7 +70,7 @@ TEST_STEPS = int(TEST_MS / DT)
 CHECKPOINT_EVERY = 50
 
 RECORD_EVERY = 10
-RESULTS_DIR = "/raid/predictive_alignment/results/exp2_1_scheduled_sampling"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp2_1_scheduled_sampling")
 
 
 def pendulum_energy(theta, omega):

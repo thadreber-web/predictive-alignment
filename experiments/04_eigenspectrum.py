@@ -4,8 +4,11 @@ Train on sine wave, snapshot eigenvalues of J at 0%, 25%, 50%, 75%, 100%.
 Also analyze singular value spectrum of M.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -14,7 +17,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 
 from src.network import PredictiveAlignmentRNN
 from src.targets import sine_target
@@ -39,7 +41,7 @@ TRAIN_STEPS = int(TRAIN_MS / DT)
 SNAPSHOT_FRACTIONS = [0.0, 0.25, 0.50, 0.75, 1.0]
 SEED = 42
 
-RESULTS_DIR = "/raid/predictive_alignment/results/04_eigenspectrum"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "04_eigenspectrum")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 

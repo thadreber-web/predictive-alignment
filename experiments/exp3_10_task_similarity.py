@@ -7,8 +7,11 @@ depends on task diversity or holds for closely related tasks.
 Also test a "very similar" condition: periods 580, 590, 600, 610, 620, 630ms.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -17,7 +20,6 @@ import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 
 from src.targets import sine_target
@@ -40,7 +42,7 @@ TRAIN_STEPS = int(TRAIN_MS / DT)
 TEST_MS = 10_000.0
 TEST_STEPS = int(TEST_MS / DT)
 
-RESULTS_DIR = "/raid/predictive_alignment/results/exp3_10_task_similarity"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp3_10_task_similarity")
 
 
 class MultiTaskPA:

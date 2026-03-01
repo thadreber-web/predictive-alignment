@@ -7,8 +7,11 @@ Trains both networks on (θ=2.0, ω=0.0), then tests on:
 If 07d generalizes and 07a doesn't, 07d learned physics, not just a trajectory.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -16,7 +19,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 
 from src.network import PredictiveAlignmentRNN
 from src.targets import generate_pendulum
@@ -34,7 +36,7 @@ ALPHA = 1.0
 G = 1.2
 SEED = 42
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-RESULTS_DIR = "/raid/predictive_alignment/results/07_generalization"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "07_generalization")
 
 # Training IC
 TRAIN_THETA0 = 2.0

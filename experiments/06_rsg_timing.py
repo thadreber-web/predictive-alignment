@@ -4,8 +4,11 @@ N=1200, K=1, D=2 input channels. Trial-based training.
 Delay values: {100, 120, 140, 160} ms, 200,000 trials.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -15,7 +18,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-import os
 
 from src.network import PredictiveAlignmentRNN
 from src.targets import generate_rsg_trial
@@ -38,7 +40,7 @@ TEST_INTERP_DELAYS = [110, 130, 150]
 TEST_EXTRAP_DELAYS = [80, 180, 200]
 
 SEED = 42
-RESULTS_DIR = "/raid/predictive_alignment/results/06_rsg_timing"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "06_rsg_timing")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 

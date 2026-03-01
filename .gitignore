@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.npz
+*.log
+results/*
+!results/figures/
+.claude/
+notebooks/
+s41467-025-61309-9.pdf
+PA_code.py
+phase_1.md
+phase_2.md
+phase_3_continual_learning.md
+results/phase_3.2_exp.md

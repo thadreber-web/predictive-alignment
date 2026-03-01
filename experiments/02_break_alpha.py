@@ -4,13 +4,15 @@ Sweeps alpha = {0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0} with 20 seeds each.
 Reproduces Figure 3C-E of the paper.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
 import logging
-import os
 from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
@@ -37,7 +39,7 @@ TRAIN_STEPS = int(TRAIN_MS / DT)
 ALPHA_VALUES = [0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0]
 N_SEEDS = 20
 
-RESULTS_DIR = "/raid/predictive_alignment/results/02_break_alpha"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "02_break_alpha")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 

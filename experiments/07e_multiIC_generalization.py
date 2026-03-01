@@ -12,8 +12,11 @@ Interleaves trajectories during training so the network sees varied
 dynamics each epoch rather than memorizing one sequence.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -21,7 +24,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 
 from src.network import PredictiveAlignmentRNN
 from src.targets import generate_pendulum
@@ -39,7 +41,7 @@ ALPHA = 1.0
 G = 1.2
 SEED = 42
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-RESULTS_DIR = "/raid/predictive_alignment/results/07e_multiIC"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "07e_multiIC")
 
 N = 500
 K = 2

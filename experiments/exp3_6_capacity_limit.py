@@ -8,8 +8,11 @@ ratio exceeds some threshold (e.g. 1.5x).
 Plot: capacity curve — max tasks before forgetting vs N.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -18,7 +21,6 @@ import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 
 from src.utils import set_seed
@@ -42,7 +44,7 @@ TRAIN_STEPS = int(TRAIN_MS / DT)
 TEST_MS = 5_000.0  # shorter test to keep runtime manageable
 TEST_STEPS = int(TEST_MS / DT)
 
-RESULTS_DIR = "/raid/predictive_alignment/results/exp3_6_capacity_limit"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp3_6_capacity_limit")
 
 # ── Waveform generators (all K=1, all return 1D arrays) ─────────────
 

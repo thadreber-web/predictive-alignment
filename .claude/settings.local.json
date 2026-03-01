@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(docker exec stiefel-unsloth python3 -c \"import torch; print\\('PyTorch:', torch.__version__\\); print\\('CUDA available:', torch.cuda.is_available\\(\\)\\); print\\('GPU:', torch.cuda.get_device_name\\(0\\) if torch.cuda.is_available\\(\\) else 'None'\\)\")",
-      "Bash(docker exec stiefel-unsloth python3 -c \"\nimport importlib\npkgs = ['numpy', 'scipy', 'matplotlib', 'seaborn', 'tqdm', 'sklearn', 'tensorboard']\nfor p in pkgs:\n    try:\n        m = importlib.import_module\\(p\\)\n        v = getattr\\(m, '__version__', 'ok'\\)\n        print\\(f'{p}: {v}'\\)\n    except ImportError:\n        print\\(f'{p}: MISSING'\\)\n\")",
-      "Bash(cd /raid/predictive_alignment/experiments && for f in 04_eigenspectrum.py 05_lorenz.py 06_rsg_timing.py 07_pendulum.py; do sed -i 's/^DT = 0\\\\.1$/DT = 1.0/' \"$f\" && sed -i 's/^ETA_M = 1e-4$/ETA_M = 1e-3/' \"$f\" && echo \"Updated $f\"; done)"
-    ]
-  }
-}

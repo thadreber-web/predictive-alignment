@@ -10,8 +10,11 @@ This gives the optimizer gradient signal through the self-feeding loop,
 which predictive alignment lacks.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import torch.nn as nn
@@ -21,7 +24,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 import math
 
@@ -69,7 +71,7 @@ TEST_STEPS = int(TEST_MS / DT)
 
 CHECKPOINT_EVERY = 50
 RECORD_EVERY = 10
-RESULTS_DIR = "/raid/predictive_alignment/results/exp2_0_bptt_baseline"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp2_0_bptt_baseline")
 
 
 class BPTT_RNN(nn.Module):

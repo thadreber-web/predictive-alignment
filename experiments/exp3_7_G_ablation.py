@@ -9,8 +9,11 @@ If forgetting appears in condition 2 but not 1: G is essential.
 If both work: Q separation alone is sufficient.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -19,7 +22,6 @@ import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 
 from src.targets import sine_target, generate_lorenz, multi_sine_target
@@ -42,7 +44,7 @@ TRAIN_STEPS = int(TRAIN_MS / DT)
 TEST_MS = 10_000.0
 TEST_STEPS = int(TEST_MS / DT)
 
-RESULTS_DIR = "/raid/predictive_alignment/results/exp3_7_G_ablation"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp3_7_G_ablation")
 
 TASKS = [
     {"name": "sine", "K": 1},

@@ -4,8 +4,11 @@ Run same 4 tasks in multiple orders. If forgetting is truly zero regardless
 of order, that strengthens the structural argument.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -14,7 +17,6 @@ import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 import itertools
 
@@ -38,7 +40,7 @@ TRAIN_STEPS = int(TRAIN_MS / DT)
 TEST_MS = 10_000.0
 TEST_STEPS = int(TEST_MS / DT)
 
-RESULTS_DIR = "/raid/predictive_alignment/results/exp3_11_task_order"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp3_11_task_order")
 
 ALL_TASKS = {
     "sine": {"K": 1},

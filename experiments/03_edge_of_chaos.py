@@ -3,8 +3,11 @@
 Sweeps g = {0.5, 0.7, 0.9, 1.0, 1.05, 1.1, 1.2, 1.5, 2.0} with 20 seeds each.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -12,7 +15,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 
 from src.network import PredictiveAlignmentRNN
 from src.targets import sine_target
@@ -35,7 +37,7 @@ TRAIN_STEPS = int(TRAIN_MS / DT)
 G_VALUES = [0.5, 0.7, 0.9, 1.0, 1.05, 1.1, 1.2, 1.5, 2.0]
 N_SEEDS = 20
 
-RESULTS_DIR = "/raid/predictive_alignment/results/03_edge_of_chaos"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "03_edge_of_chaos")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 

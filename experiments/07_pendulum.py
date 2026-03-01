@@ -3,8 +3,11 @@
 N=500, K=2 (theta, omega), train 50s (10 repeats of 5s trajectory).
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -13,7 +16,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 
 from src.network import PredictiveAlignmentRNN
 from src.targets import generate_pendulum
@@ -49,7 +51,7 @@ TEST_STEPS = int(TEST_MS / DT)
 RECORD_EVERY = 10
 SEED = 42
 
-RESULTS_DIR = "/raid/predictive_alignment/results/07_pendulum"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "07_pendulum")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 

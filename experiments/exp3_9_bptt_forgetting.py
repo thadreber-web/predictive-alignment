@@ -8,8 +8,11 @@ optimizes M directly through gradient descent.
 This gives the direct comparison: PA forgetting ratio vs BPTT forgetting ratio.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import torch.nn as nn
@@ -19,7 +22,6 @@ import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 
 from src.targets import sine_target, generate_lorenz, multi_sine_target
@@ -45,7 +47,7 @@ T_BPTT = 50
 LR = 1e-3
 GRAD_CLIP = 1.0
 
-RESULTS_DIR = "/raid/predictive_alignment/results/exp3_9_bptt_forgetting"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp3_9_bptt_forgetting")
 
 TASKS = [
     {"name": "sine", "K": 1},

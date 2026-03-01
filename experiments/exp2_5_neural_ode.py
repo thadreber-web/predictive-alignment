@@ -8,8 +8,11 @@ This establishes the upper bound: can ANY method learn generalizable
 pendulum dynamics from multi-IC training data?
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import torch.nn as nn
@@ -18,7 +21,6 @@ import logging
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 import time
 
 from src.targets import generate_pendulum
@@ -58,7 +60,7 @@ TEST_MS = 5_000.0
 TEST_STEPS = int(TEST_MS / DT)
 
 CHECKPOINT_EVERY = 50
-RESULTS_DIR = "/raid/predictive_alignment/results/exp2_5_neural_ode"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "exp2_5_neural_ode")
 
 
 class PendulumODEFunc(nn.Module):

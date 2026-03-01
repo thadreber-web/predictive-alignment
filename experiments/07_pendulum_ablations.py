@@ -5,8 +5,11 @@
 07d — Input-driven one-step-ahead predictor (D=2, teacher forcing)
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
@@ -15,7 +18,6 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import os
 
 from src.network import PredictiveAlignmentRNN
 from src.targets import generate_pendulum
@@ -37,7 +39,7 @@ G = 1.2
 RECORD_EVERY = 10
 SEED = 42
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BASE_DIR = "/raid/predictive_alignment/results"
+BASE_DIR = os.path.join(PROJECT_DIR, "results")
 
 
 def pendulum_energy(theta, omega):

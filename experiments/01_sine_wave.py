@@ -3,13 +3,15 @@
 N=500, K=1, sine wave period=600ms, train 30s, test 10s autonomous.
 """
 
+import os
 import sys
-sys.path.insert(0, "/raid/predictive_alignment")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, PROJECT_DIR)
 
 import torch
 import numpy as np
 import logging
-import os
 from tqdm import tqdm
 
 from src.network import PredictiveAlignmentRNN
@@ -39,7 +41,7 @@ RECORD_EVERY = 10          # record output every 10 steps
 SNAPSHOT_EVERY = 5000      # snapshot every 5000 steps
 
 SEED = 42
-RESULTS_DIR = "/raid/predictive_alignment/results/01_sine_wave"
+RESULTS_DIR = os.path.join(PROJECT_DIR, "results", "01_sine_wave")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ── Run ─────────────────────────────────────────────────────────────
