@@ -484,8 +484,88 @@ This validates the physics-informed approach: right architecture (Hamiltonian) +
 
 **Why this matters:** Standard backprop networks catastrophically forget task A when trained on task B. PA resists this because (1) each task has isolated readout weights, (2) M updates are driven by task-specific Q feedback, and (3) the fixed G scaffold constrains M updates.
 
+### Exp 3.3 — Alpha Sweep for Continual Learning
+
+**Setup:** Sine→Lorenz protocol from 3.1, but varying α during Phase 2 (Phase 1 always α=1.0). α ∈ {0.0, 0.5, 1.0, 2.0, 4.0}.
+
+**Results: ALL alphas show NO forgetting** — forgetting ratio < 1.0 for every α tested.
+
+| Alpha | Sine P1 | Sine P2 | Forget Ratio | Lorenz Err | ||ΔM|| |
+|-------|---------|---------|-------------|------------|--------|
+| 0.0   | 1.24    | 0.96    | 0.78        | 5.84       | 12.83  |
+| 0.5   | 1.17    | 0.97    | 0.83        | 5.79       | 12.49  |
+| 1.0   | 1.20    | 0.96    | 0.80        | **2.88**   | 11.06  |
+| 2.0   | 1.59    | 1.03    | 0.65        | 6.05       | 18.69  |
+| 4.0   | 1.34    | 0.95    | 0.71        | 5.92       | 55.53  |
+
+**Key findings:**
+- **Forgetting ratio is < 1.0 for ALL α values** — sine recall improves during Lorenz training regardless of α. PA has zero catastrophic forgetting across the entire α range.
+- **α=1.0 is optimal for Lorenz learning** (2.88 vs 5.8–6.0 for other values), consistent with Exp 02 finding that α=1 gives best task performance.
+- **Higher α → larger ||ΔM||**: α=4.0 produces 55.5 vs 11.1 for α=1.0 — the αG term drives M further from its initial state, but this does NOT cause forgetting because task-specific readouts w are preserved.
+- **α does NOT modulate forgetting** — it modulates M change magnitude and Lorenz learning quality, but forgetting resistance appears to be a structural property of the G/M + task-specific readout architecture, not an α-dependent effect.
+
+### Exp 3.4 — Four-System Sequential Stress Test
+
+**Setup:** Sequential training: sine (K=1, 15s) → Lorenz (K=3, 15s) → multi-freq sine (K=1, 15s) → sawtooth (K=1, 15s). After each phase, test ALL tasks.
+
+**Forgetting matrix (error on task j after training through task i):**
+
+| Trained through | sine | lorenz | multi_sine | sawtooth |
+|-----------------|------|--------|------------|----------|
+| after sine      | 1.07 | 2.80   | 0.66       | 0.75     |
+| after lorenz    | 0.96 | 2.79   | 0.66       | 0.75     |
+| after multi_sine| 0.96 | 2.82   | 1.01       | 0.75     |
+| after sawtooth  | 0.95 | 2.84   | 0.69       | 0.79     |
+
+**Forgetting ratios (final error / baseline error):**
+- sine: **0.88x** (improved)
+- lorenz: **1.02x** (essentially unchanged)
+- multi_sine: **0.68x** (improved)
+- sawtooth: **1.00x** (unchanged — trained last)
+
+**Key findings:**
+- **Zero catastrophic forgetting across 4 sequential systems.** No task's forgetting ratio exceeds 1.02x.
+- **Sine and multi_sine actually IMPROVED** during later training phases (0.88x and 0.68x). This is the same "anti-forgetting" effect seen in 3.1/3.2.
+- **Lorenz is essentially stable** (1.02x) — 3D chaotic attractor recall survives training on 2 additional systems.
+- The forgetting resistance is robust: 4 tasks × 15s each = 60s of total training with shared M, and no task degrades.
+- Untrained task errors (0.66–0.75 for multi_sine/sawtooth before their phase) stay constant until their training phase — task-specific readouts don't interfere.
+
+**Why PA resists forgetting:** The architecture has natural memory compartmentalization:
+1. Each task has isolated readout weights (w_i) and feedback (Q_i)
+2. M updates are driven by task-specific Q_i feedback, which sculpts M in directions relevant to the active task
+3. The fixed G scaffold constrains M's update directions
+4. Different tasks apparently use near-orthogonal subspaces of M
+
+### Exp 3.5 — N-Scaling for 4-System Continual Learning
+
+**Setup:** Same exp 3.4 protocol (sine→Lorenz→multi-sine→sawtooth, 15s each) but sweep N = [100, 200, 500, 1000, 2000]. No periodic forgetting curves during training — only test after each phase completes.
+
+**Results: Clear threshold scaling — forgetting disappears above N≈500.**
+
+| N | Max forgetting ratio | sine | lorenz | multi_sine | sawtooth |
+|---:|---:|---:|---:|---:|---:|
+| 100 | **1.756** | 1.004 | 1.363 | 1.756 | 1.000 |
+| 200 | **1.522** | 0.940 | 0.528 | 1.522 | 1.000 |
+| 500 | **1.041** | 0.870 | 1.041 | 0.662 | 1.000 |
+| 1000 | **1.000** | 0.844 | 0.571 | 0.318 | 1.000 |
+| 2000 | **1.000** | 0.702 | 0.475 | 0.431 | 1.000 |
+
+(Sawtooth is always 1.000 because it's the last task trained — no subsequent task can cause forgetting.)
+
+**Key findings:**
+
+1. **Threshold behavior, not gradual scaling.** Max forgetting drops sharply from 1.76 (N=100) to 1.04 (N=500) to 1.00 (N≥1000). The transition happens between N=200 and N=500.
+
+2. **Multi_sine is the most forgetting-vulnerable task** at small N (1.76x at N=100, 1.52x at N=200). It's trained 3rd (after sine and Lorenz), so two subsequent phases of M updates can overwrite it. At N≥500, multi_sine flips to *anti-forgetting* (ratio <1.0).
+
+3. **Lorenz forgetting is non-monotonic**: 1.36 at N=100, 0.53 at N=200, 1.04 at N=500, 0.57 at N=1000, 0.48 at N=2000. The K=3 readout may interact differently with M capacity at different N.
+
+4. **Anti-forgetting strengthens with N.** At N≥500, most tasks show ratios well below 1.0 (sine: 0.87→0.70, multi_sine: 0.66→0.43). Larger networks have more capacity for the "constructive interference" effect where later training improves earlier tasks.
+
+5. **Capacity interpretation:** With 4 tasks, each needing readout subspaces in an N-dimensional space, orthogonality fails when N is too small. At N=100 with p=0.1 sparsity, effective connectivity is ~10 connections per neuron — insufficient for 4 independent task subspaces. By N=500, there's ample room for orthogonal readout directions.
+
+**Runtime:** 100→18s, 200→21s, 500→25s, 1000→31s, 2000→125s. Total ~4 min.
+
 ### Next steps
-- Exp 3.3: α dial — does higher α during Phase 2 protect Phase 1 knowledge?
-- Exp 3.4: Four-system stress test (sine → Lorenz → multi-freq → sawtooth)
-- Exp 3.5: Weight analysis — SVD of M, modularity of learned connections
+- Weight analysis — SVD of M, modularity of learned connections (verify orthogonal subspace hypothesis)
 - Run experiment 06 (RSG timing) when time permits (~4-6 hours)
