@@ -655,7 +655,40 @@ This validates the physics-informed approach: right architecture (Hamiltonian) +
 - **M's update rule** naturally sculpting task-relevant structure that doesn't interfere across tasks
 - Q and w isolation provide **convenience** (better per-task performance) but are **not necessary** for preventing forgetting
 
+### Exp 3.10 — Task Similarity: Do Similar Tasks Cause Forgetting?
+
+**Setup:** 6 sequential K=1 sine waves at varying period separations. Four conditions:
+1. **Diverse:** periods [200, 400, 600, 800, 1000, 1200] ms (200ms spacing)
+2. **Moderate:** periods [400, 500, 600, 700, 800, 900] ms (100ms spacing)
+3. **Similar:** periods [550, 570, 590, 610, 630, 650] ms (20ms spacing)
+4. **Very similar:** periods [580, 590, 600, 610, 620, 630] ms (10ms spacing)
+
+N=500, 15s training per task, 10s test. Same hyperparameters as exp 3.4.
+
+**Results: NO forgetting even with 10ms period spacing.**
+
+| Condition | Max ratio | Mean ratio | Per-task range |
+|-----------|-----------|------------|----------------|
+| diverse | 1.045 | 0.849 | 0.547 – 1.045 |
+| moderate | 1.000 | 0.866 | 0.779 – 1.000 |
+| similar | 1.000 | 0.861 | 0.761 – 1.000 |
+| very_similar | 1.000 | 0.826 | 0.718 – 1.000 |
+
+**Key findings:**
+
+1. **No forgetting at any similarity level.** Max ratio never exceeds 1.045 (a single outlier in the diverse condition). All other conditions have max ratio = 1.000 (the last-trained task, trivially).
+
+2. **Very similar tasks actually show the BEST mean ratio** (0.826 vs 0.849 for diverse). Counter to the hypothesis that similar tasks would compete for M subspace — the opposite occurs.
+
+3. **Anti-forgetting effect is robust across all conditions.** Mean ratios range from 0.826 to 0.866, meaning on average tasks improve ~13-17% during later training.
+
+4. **The diverse condition has the only ratio > 1.0** (sine_p800: 1.045). This is likely because widely-spaced frequencies exercise different parts of the dynamics, causing slightly more M interference. But even this is marginal.
+
+5. **Interpretation:** Similar sine waves likely share readout directions in M space. Rather than causing destructive interference, subsequent training on a nearby frequency *reinforces* the relevant M structure, explaining why very_similar has the best mean ratio. This is constructive interference — similar tasks help each other.
+
+**Runtime:** ~3.5 min total (52s per condition).
+
 ### Next steps
-- Exp 3.10: Task similarity (nearby sine frequencies) — may find forgetting with similar tasks
-- Exp 3.11: Task order permutation — test order independence
+- Exp 3.11: Task order permutation (running — 24 permutations of 4-task protocol)
 - Exp 3.9: BPTT comparison — the baseline every reviewer needs
+- Exp 3.12: Simultaneous vs sequential training
