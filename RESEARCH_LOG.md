@@ -625,6 +625,37 @@ This validates the physics-informed approach: right architecture (Hamiltonian) +
 
 **Conclusion:** G is not just protecting against forgetting — it's a prerequisite for PA to learn anything. The fixed random scaffold provides: (a) rich initial dynamics for readout learning, (b) a stable reference for the M learning rule, and (c) dimensional diversity that M alone cannot maintain while being continuously updated. This rules out the hypothesis that "Q separation alone is sufficient."
 
+### Exp 3.8 — Q Ablation: Is Q Orthogonality the Key Mechanism?
+
+**Setup:** Same 4-task protocol, three conditions:
+1. **Independent Q:** random Q per task (baseline)
+2. **Shared Q:** same Q matrix for all tasks with same K (separate w per task)
+3. **Shared Q + shared w:** same Q AND same w for tasks with same K (extreme ablation)
+
+**Results: Q orthogonality is NOT the key mechanism — zero forgetting in all conditions.**
+
+| Condition | sine | lorenz | multi_sine | sawtooth | Max ratio |
+|-----------|------|--------|------------|----------|-----------|
+| Independent Q | 0.87 | 0.51 | 0.90 | 1.00 | 1.00 |
+| Shared Q | 0.98 | 0.26 | 0.56 | 1.00 | 1.00 |
+| Shared Q + shared w | 0.86 | 0.99 | 0.80 | 1.00 | 1.00 |
+
+**Key findings:**
+
+1. **Shared Q still works.** All forgetting ratios ≤ 1.0 even when every task feeds back through the identical Q matrix. M partitions itself into task-relevant subspaces independently of Q feedback direction.
+
+2. **Even shared Q + shared w works.** With both Q and w shared, tasks only differ by which target signal is presented during training. The readout w gets overwritten each phase (since it's shared), yet when tested on earlier tasks, performance hasn't degraded. This means the **autonomous dynamics encoded in M** are what carry task memory, not the readout weights.
+
+3. **Learning quality differs across conditions.** Shared Q shows more variable per-task errors (Lorenz improves to 0.26 ratio but sine weakens to 0.98). Shared Q+w shows Lorenz ratio near 1.0 (0.99) — the shared w can't simultaneously serve all K=1 tasks well.
+
+4. **The anti-forgetting effect persists** across all conditions, confirming it's a property of how M evolves, not of Q/w isolation.
+
+**Revised mechanistic understanding:** The forgetting resistance comes from:
+- The **fixed G scaffold** providing stable dynamics (exp 3.7 showed G is essential)
+- **M's update rule** naturally sculpting task-relevant structure that doesn't interfere across tasks
+- Q and w isolation provide **convenience** (better per-task performance) but are **not necessary** for preventing forgetting
+
 ### Next steps
-- Exp 3.8: Q ablation (shared Q) — test whether Q orthogonality drives forgetting resistance
-- Exp 3.10: Task similarity (nearby sine frequencies) — may find the capacity limit that diverse tasks didn't
+- Exp 3.10: Task similarity (nearby sine frequencies) — may find forgetting with similar tasks
+- Exp 3.11: Task order permutation — test order independence
+- Exp 3.9: BPTT comparison — the baseline every reviewer needs
