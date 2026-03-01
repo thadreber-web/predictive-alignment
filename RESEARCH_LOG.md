@@ -334,8 +334,53 @@ The gap is 20x between Neural ODE and the best RNN method (BPTT), and 42x vs the
 4. Can Neural ODE scale to harder systems (Lotka-Volterra, double pendulum)?
 5. The interp_hard IC (θ=2.5, ω=1.0) had 0.279 error — near the training range boundary. How does error scale with distance from training distribution?
 
+### Experiment 2.3: Neural ODE on Lotka-Volterra (RUNNING)
+
+Conservative 2D predator-prey system with multiplicative coupling:
+```
+dx/dt = αx - βxy,  dy/dt = δxy - γy
+α=1.0, β=0.1, δ=0.075, γ=1.5, fixed point (20, 10)
+```
+
+Key differences from pendulum:
+- Conservative (no damping) — orbits are closed, never decay
+- Multiplicative xy coupling — harder nonlinearity than sin(θ)
+- Positive-only state space — negative populations are nonsense
+- Has conserved quantity V = δx - γln(x) + βy - αln(y)
+
+Setup: Same MLP (2→64→64→64→2, 8.6k params). Training on random ICs from x∈[2,20], y∈[2,20], 30s trajectories (~3-4 full cycles). 500 epochs.
+
+Test ICs (held out): near fixed point (15,8), small orbit (5,5), large orbit (25,15), low predator (10,3), high predator (3,18).
+
+**Results: PARTIAL SUCCESS** — vector field learned accurately, but long-horizon integration drifts.
+
+| IC | x₀ | y₀ | Error | Conservation drift |
+|----|----|----|-------|--------------------|
+| near_fp | 15.0 | 8.0 | 1.16 | 0.028 |
+| small_orbit | 5.0 | 5.0 | 8.14 | 0.541 |
+| large_orbit | 25.0 | 15.0 | 0.92 | 0.026 |
+| low_predator | 10.0 | 3.0 | 4.78 | 0.306 |
+| high_predator | 3.0 | 18.0 | 17.61 | 1.145 |
+| **Mean** | | | **6.52** | |
+
+Vector field quality (instantaneous derivatives) — learned accurately:
+```
+(10, 5): true=(+5.0, -3.75) learned=(+4.74, -3.59)
+(30,15): true=(-15.0, +11.25) learned=(-15.27, +11.56)
+(15, 3): true=(+10.5, -1.13) learned=(+10.51, -1.14)
+```
+
+**Key findings:**
+- Near the training IC range center (near_fp, large_orbit): errors < 1.2, conservation drift < 0.03 — excellent
+- Far from center or extreme predator-prey ratios (small_orbit, high_predator): errors 4.8–17.6, conservation leak up to 1.14
+- The network *learned the vector field* (derivatives are accurate) but small per-step errors compound over 30s of integration (3000 steps)
+- Lotka-Volterra is harder than pendulum: conservative orbits never converge to a fixed point, so integration errors accumulate without self-correction. Pendulum's damping acts as error-correcting — trajectories converge regardless of small deviations
+- Mean error 6.52 vs pendulum's 0.085 — **77x worse**, confirming conservative systems are fundamentally harder for Neural ODEs without explicit symplectic structure
+
+Training: 500 epochs, 83 min. Loss noisy early (spike to 39.5 at epoch 150) but converged. Checkpoint error: 47.8 → 1.16.
+
 ### Next steps
-- Experiment 2.3: Lotka-Volterra with Neural ODE (test on coupled nonlinear system)
 - Experiment 2.4: Double pendulum (chaotic 4D system — hardest test)
+- Consider symplectic integrator or Hamiltonian Neural ODE for conservative systems
 - Consider hybrid: PA for autonomous attractor generation + Neural ODE head for physics prediction
 - Run experiment 06 (RSG timing) when time permits (~4-6 hours)
