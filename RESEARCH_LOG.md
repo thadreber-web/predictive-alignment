@@ -598,7 +598,33 @@ This validates the physics-informed approach: right architecture (Hamiltonian) +
 
 **Implication:** The original question was "how many tasks before it breaks?" Answer: >50 for all tested N. To find the true limit, would need either (a) many more tasks (100+), (b) smaller N (100-200), or (c) similar tasks that compete for the same readout subspace (see exp 3.10).
 
+### Exp 3.7 — G Ablation: Is the Fixed Scaffold Necessary?
+
+**Setup:** Same 4-task protocol (sine→Lorenz→multi-sine→sawtooth, N=500, 15s each) under three conditions:
+1. **Standard PA:** G sparse at g=1.2, M starts small (baseline)
+2. **G=0, M large:** G=0, M initialized with sparse connectivity at g=1.2 strength
+3. **G=0, M small:** G=0, M starts small (no initial connectivity)
+
+**Results: G is essential for LEARNING, not just for preventing forgetting.**
+
+| Condition | sine | lorenz | multi_sine | sawtooth | Max ratio |
+|-----------|------|--------|------------|----------|-----------|
+| Standard PA | 0.87 | 0.51 | 0.90 | 1.00 | 1.00 |
+| G=0, M large | 0.99 | 1.00 | 1.00 | 1.00 | 1.00 |
+| G=0, M small | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+
+**All conditions show max ratio = 1.0, but for completely different reasons:**
+- Standard PA: genuine anti-forgetting (ratios 0.51-0.90 — tasks improve during later training)
+- G=0 conditions: **no learning occurs at all**. Errors are constant across all rows of the forgetting matrix (e.g. Lorenz stays at exactly 2.8037 — the untrained baseline — through all 4 phases). Ratio = 1.0 trivially because nothing changed.
+
+**Why G=0 prevents learning:**
+1. Without the fixed G scaffold, the network lacks the initial chaotic dynamics needed to produce diverse activity patterns r(t)
+2. The readout w learns via `w += η_w * (target - w@r) ⊗ r` — if r is uninformative (low-dimensional, static), w can't find good projections
+3. Even when M starts at G's strength (condition 2), M is being modified by the learning rule at every step, destroying the connectivity structure needed for rich dynamics. G's *fixedness* is the key — it provides a stable scaffold that M sculpts on top of
+4. The PA learning rule for M uses `(M - αG)@r`, so with G=0, the αG error signal vanishes — M has no target to align toward
+
+**Conclusion:** G is not just protecting against forgetting — it's a prerequisite for PA to learn anything. The fixed random scaffold provides: (a) rich initial dynamics for readout learning, (b) a stable reference for the M learning rule, and (c) dimensional diversity that M alone cannot maintain while being continuously updated. This rules out the hypothesis that "Q separation alone is sufficient."
+
 ### Next steps
-- Exp 3.7: G ablation (G=0) — test whether fixed scaffold is necessary
 - Exp 3.8: Q ablation (shared Q) — test whether Q orthogonality drives forgetting resistance
 - Exp 3.10: Task similarity (nearby sine frequencies) — may find the capacity limit that diverse tasks didn't
