@@ -566,6 +566,39 @@ This validates the physics-informed approach: right architecture (Hamiltonian) +
 
 **Runtime:** 100→18s, 200→21s, 500→25s, 1000→31s, 2000→125s. Total ~4 min.
 
+### Exp 3.6 — Capacity Limit: How Many Tasks Before Forgetting?
+
+**Setup:** Sweep number of sequential K=1 tasks (4, 8, 12, 16, 20, 30, 50) at N=500, 1000, 2000. Task pool of 50 diverse waveforms: sine/sawtooth/triangle/square at various periods, chirps, AM sine, rectified sine, multi-sine combos, clipped sine, exponential bursts. 15s training per task, 5s test. Same hyperparameters as exp 3.4.
+
+**Results: No capacity limit found — PA handles 50 sequential tasks without systematic forgetting.**
+
+| n_tasks | N=500 max (mean) | N=1000 max (mean) | N=2000 max (mean) |
+|--------:|------------------:|-------------------:|-------------------:|
+| 4 | 0.71 (0.61) | 1.81 (1.17) | 0.99 (0.82) |
+| 8 | 1.03 (0.71) | 0.94 (0.78) | 1.02 (0.83) |
+| 12 | 1.80 (0.89) | 1.01 (0.72) | 1.05 (0.76) |
+| 16 | 1.74 (0.95) | 0.98 (0.76) | 1.73 (0.69) |
+| 20 | 1.88 (0.80) | 0.96 (0.68) | 1.20 (0.70) |
+| 30 | 1.02 (0.75) | 1.33 (0.72) | 1.04 (0.66) |
+| 50 | 1.24 (0.78) | 1.00 (0.71) | 1.01 (0.69) |
+
+**Key findings:**
+
+1. **Mean forgetting ratio is ALWAYS below 1.0** (except N=1000 at 4 tasks). On average, tasks improve during later training — consistent anti-forgetting. The mean converges to ~0.7 by 20+ tasks regardless of N.
+
+2. **Max forgetting ratio is noisy and non-monotonic.** Spikes at specific task counts (12-20 for N=500, 16 for N=2000) but drops back down. These are individual outlier tasks, not systematic capacity exhaustion.
+
+3. **No capacity wall found at 50 tasks for any N.** Even N=500 with 50 tasks has mean ratio 0.78. The capacity threshold plot is a flat line at 50 — we never exceeded the 2.0x threshold.
+
+4. **Larger N helps but isn't necessary.** N=2000 is slightly more stable (mean ~0.69 vs ~0.78 for N=500) but even N=500 handles 50 tasks with tolerable max ratios.
+
+5. **The task-specific readout architecture provides more compartmentalization than expected.** Each task's w and Q occupy such a small fraction of the N-dimensional space that even 50 tasks don't saturate it at N=500.
+
+**Runtime:** ~4.2 hours total (dominated by N=2000 × 50 tasks at 90 min).
+
+**Implication:** The original question was "how many tasks before it breaks?" Answer: >50 for all tested N. To find the true limit, would need either (a) many more tasks (100+), (b) smaller N (100-200), or (c) similar tasks that compete for the same readout subspace (see exp 3.10).
+
 ### Next steps
-- Weight analysis — SVD of M, modularity of learned connections (verify orthogonal subspace hypothesis)
-- Run experiment 06 (RSG timing) when time permits (~4-6 hours)
+- Exp 3.7: G ablation (G=0) — test whether fixed scaffold is necessary
+- Exp 3.8: Q ablation (shared Q) — test whether Q orthogonality drives forgetting resistance
+- Exp 3.10: Task similarity (nearby sine frequencies) — may find the capacity limit that diverse tasks didn't
