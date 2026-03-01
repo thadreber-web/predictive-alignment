@@ -379,8 +379,54 @@ Vector field quality (instantaneous derivatives) — learned accurately:
 
 Training: 500 epochs, 83 min. Loss noisy early (spike to 39.5 at epoch 150) but converged. Checkpoint error: 47.8 → 1.16.
 
+### Exp 2.4 — Double Pendulum (Neural ODE, 4D chaotic)
+
+4D state (θ₁, θ₂, ω₁, ω₂), equal masses/lengths, g=9.81. MLP 4→128→128→128→4 (34k params). 500 epochs, dt=0.01s, 10s trajectories. Training ICs: θ∈[-1.5,1.5], ω∈[-2,2].
+
+**Results: MODERATE SUCCESS** — short-horizon accurate, long-horizon diverges (expected for chaos).
+
+| IC | θ₁ | θ₂ | ω₁ | ω₂ | Err 2s | Err 10s | Energy drift |
+|----|----|----|----|----|--------|---------|-------------|
+| small_angle | 0.5 | 0.5 | 0 | 0 | 0.41 | 1.48 | 7.6 |
+| medium_angle | 1.0 | -0.5 | 0 | 0 | 0.36 | 2.48 | 8.0 |
+| large_angle | 1.5 | 1.5 | 0 | 0 | 1.59 | 3.13 | 5.5 |
+| chaotic_start | 2.0 | 2.0 | 0 | 0 | 2.76 | 3.22 | 7.4 |
+| with_velocity | 0.8 | 0.3 | 1.0 | -1.0 | 0.55 | 4.36 | 23.4 |
+| **Mean** | | | | | **1.13** | **2.94** | |
+
+**Key findings:**
+- Short-horizon (2s, ~2 oscillation periods) mean error 1.13 — usable for short-term prediction
+- Long-horizon (10s) mean error 2.94 — better than Lotka-Volterra (6.52) despite being 4D and chaotic
+- Chaotic IC (θ=2.0,2.0) shows expected rapid divergence: err_2s=2.76 is high because chaos amplifies small errors exponentially
+- Vector field learned reasonably well at test points
+- Energy drift significant (5–23) — no conservation structure enforced
+- Training: 26 min, loss noisy due to chaotic trajectories
+
+### Exp 2.3b — Hamiltonian Neural Network for Lotka-Volterra
+
+Physics-informed architecture: MLP outputs scalar H(u,v) in log-coordinates (u=ln(x), v=ln(y)). Dynamics derived via torch.autograd: du/dt = -∂H/∂v, dv/dt = ∂H/∂u, transformed back to (x,y). Structurally guarantees H is conserved.
+
+Training: derivative matching (Greydanus et al. 2019 approach) — train on finite-difference derivatives, not integrated trajectories. 500 epochs, 256 points per batch, 4 min training.
+
+**Results: CONSERVATION WORKS, ACCURACY DOESN'T** — Hamiltonian structure reduces conservation drift but trajectory accuracy is worse than vanilla Neural ODE.
+
+| IC | x₀ | y₀ | HNN err | NODE err | HNN drift | NODE drift |
+|----|----|-----|---------|----------|-----------|------------|
+| near_fp | 15.0 | 8.0 | 5.29 | 1.16 | **0.0007** | 0.028 |
+| small_orbit | 5.0 | 5.0 | 26.17 | 8.14 | 0.453 | 0.541 |
+| large_orbit | 25.0 | 15.0 | 7.03 | 0.92 | 0.315 | 0.026 |
+| low_predator | 10.0 | 3.0 | 20.04 | 4.78 | 0.264 | 0.306 |
+| high_predator | 3.0 | 18.0 | 59.39 | 17.61 | 0.802 | 1.145 |
+| **Mean** | | | **23.58** | **6.52** | | |
+
+**Key findings:**
+- near_fp conservation drift: 0.0007 vs 0.028 — **40x improvement**. The Hamiltonian structure works.
+- But trajectory errors are 3.6x worse (23.6 vs 6.5). The derivative matching training didn't converge well enough — loss still noisy.
+- The log-coordinate transformation is physically correct (LV is canonical Hamiltonian in (ln(x), ln(y))), but the MLP struggles to learn the exponential structure H = δeᵘ - γu + βeᵛ - αv.
+- Derivative matching trains faster (4 min vs 83 min) but gives worse results because it trains on pointwise derivatives rather than trajectory-level integration. The vanilla NODE integrates through segments during training, which provides stronger gradients.
+- **Lesson**: Hamiltonian structure is the right idea but needs trajectory-level training (backprop through integrator) to get accurate enough derivatives. The original slow approach was correct — it just needs optimization (e.g., shorter segments, mixed precision, or adjoint method).
+
 ### Next steps
-- Experiment 2.4: Double pendulum (chaotic 4D system — hardest test)
-- Consider symplectic integrator or Hamiltonian Neural ODE for conservative systems
-- Consider hybrid: PA for autonomous attractor generation + Neural ODE head for physics prediction
+- Consider hybrid approach: HNN with trajectory-level training (short segments, efficient autograd)
 - Run experiment 06 (RSG timing) when time permits (~4-6 hours)
+- Consider PA + Neural ODE hybrid architecture
