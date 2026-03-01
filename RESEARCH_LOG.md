@@ -455,7 +455,37 @@ Same HNN architecture as 2.3b, but replaced derivative matching with backprop th
 
 This validates the physics-informed approach: right architecture (Hamiltonian) + right training (trajectory-level) = better than either alone.
 
+---
+
+## 2026-02-28 — Phase 3: Continual Learning
+
+### Exp 3.1/3.2 — Sequential Two-System Test + Forgetting Curve
+
+**Setup:** Train PA on sine wave (K=1, 30s) → then train on Lorenz (K=3, 15s) without resetting M. Each task has its own readout w and feedback Q; G and M are shared. Periodic sine recall tests during Lorenz training (forgetting curve).
+
+**Results: NO CATASTROPHIC FORGETTING** — sine recall actually *improved* during Lorenz training.
+
+| Metric | Value |
+|--------|-------|
+| Sine error after Phase 1 | 1.24 |
+| Sine error after Phase 2 | **0.96** (improved!) |
+| Forgetting ratio (P2/P1) | **0.77x** (< 1 = no forgetting) |
+| Control sine error (fresh net) | 1.59 |
+| Lorenz error after Phase 2 | 5.99 |
+| Control Lorenz error (fresh net) | 2.88 |
+| ||ΔM|| / ||M_phase1|| | 1.42 (M grew 42%) |
+
+**Key findings:**
+- Sine recall improved from 1.24 → 0.96 during Lorenz training — the opposite of catastrophic forgetting
+- The forgetting curve is flat: sine error drops immediately when Lorenz training starts and stays stable at ~0.96 throughout
+- M changed substantially (||ΔM||/||M₁|| = 1.42) but the sine readout w₁ still works — the M changes are orthogonal to the sine readout subspace
+- Lorenz learning was harder with pre-trained M (5.99 vs 2.88 control) — the sine-adapted M provides a less favorable starting point for Lorenz
+- The G/M architecture naturally separates task memories: w₁ reads from a subspace that M's Lorenz updates don't disrupt
+
+**Why this matters:** Standard backprop networks catastrophically forget task A when trained on task B. PA resists this because (1) each task has isolated readout weights, (2) M updates are driven by task-specific Q feedback, and (3) the fixed G scaffold constrains M updates.
+
 ### Next steps
+- Exp 3.3: α dial — does higher α during Phase 2 protect Phase 1 knowledge?
+- Exp 3.4: Four-system stress test (sine → Lorenz → multi-freq → sawtooth)
+- Exp 3.5: Weight analysis — SVD of M, modularity of learned connections
 - Run experiment 06 (RSG timing) when time permits (~4-6 hours)
-- Consider PA + Neural ODE hybrid architecture
-- Write up Phase 2 findings for potential publication
