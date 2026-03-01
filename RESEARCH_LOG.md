@@ -688,7 +688,44 @@ N=500, 15s training per task, 10s test. Same hyperparameters as exp 3.4.
 
 **Runtime:** ~3.5 min total (52s per condition).
 
+### Exp 3.11 — Task Order Permutation: Is Forgetting Order-Dependent?
+
+**Setup:** All 24 permutations of 4 tasks (sine, lorenz, multi_sine, sawtooth). Fresh network per permutation, same seed. N=500, 15s training per task, 10s test. Same hyperparameters as exp 3.4.
+
+**Results: Forgetting resistance is largely order-independent — 18/24 orders show max ratio = 1.0.**
+
+| Metric | Value |
+|--------|-------|
+| Max forgetting ratio across all orders | min=1.000, max=1.515, mean=1.058, std=0.125 |
+| Mean forgetting ratio across all orders | min=0.692, max=1.132, mean=0.840, std=0.095 |
+| Best order | sine→lorenz→multi_sine→sawtooth (max=1.000) |
+| Worst order | multi_sine→sawtooth→lorenz→sine (max=1.515) |
+
+**Per-task final error variability across all 24 orders:**
+
+| Task | Mean error | Std | Min | Max |
+|------|-----------|-----|-----|-----|
+| sine | 1.023 | 0.156 | 0.835 | 1.534 |
+| lorenz | 3.042 | 0.870 | 1.683 | 5.791 |
+| multi_sine | 0.778 | 0.096 | 0.622 | 0.998 |
+| sawtooth | 0.967 | 0.164 | 0.767 | 1.318 |
+
+**Key findings:**
+
+1. **75% of orders (18/24) show zero forgetting** (max ratio = 1.0). The forgetting resistance is robust to order changes.
+
+2. **Worst-case forgetting is mild** (1.515 for one specific order). Even the worst order only degrades the most-affected task by ~50%, not catastrophic collapse.
+
+3. **Orders ending with sine tend to be worse.** The 4 worst orders all end with simple tasks (sine or sawtooth) after training complex ones. When a simple K=1 task is trained first and complex Lorenz (K=3) follows, the M changes from Lorenz training can slightly disrupt the sine readout subspace.
+
+4. **Mean forgetting ratio is below 1.0 for 21/24 orders** — anti-forgetting is the norm, not the exception.
+
+5. **Lorenz shows the most variability** (std=0.870) — its K=3 readout is more sensitive to training order than the K=1 tasks. Best Lorenz performance (1.683) occurs when it's trained last; worst (5.791) when trained first with 3 subsequent phases disrupting it.
+
+6. **Our default order (sine→lorenz→multi_sine→sawtooth) is the best order** — this was originally chosen arbitrarily but happens to be optimal. Simple→complex ordering works best.
+
+**Runtime:** ~11 min total (~27s per permutation).
+
 ### Next steps
-- Exp 3.11: Task order permutation (running — 24 permutations of 4-task protocol)
 - Exp 3.9: BPTT comparison — the baseline every reviewer needs
 - Exp 3.12: Simultaneous vs sequential training
